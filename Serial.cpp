@@ -16,16 +16,17 @@ Serial::~Serial() {
 }
 
 int Serial::setup (const char* device, unsigned int speed) {
-	printf("Attempting to connect to %s\n", device);
 	_handle = open(device, O_RDWR | O_NOCTTY | O_SYNC);
 	if (_handle < 0) {
-		printf("Error opening %s: %s\n", device, strerror(errno));
+		fprintf(stderr, "Error opening %s: %s\n", device, strerror(errno));
 		return -1;
-	} else {
-		printf("Successfully opened %s with file descriptor %d\n", device, _handle);
 	}
 
 	setBaudRate(speed);
+	if(B0 == _speed) {
+		fprintf(stderr, "Error setting BAUD rate for %s: %d speed not supported\n", device, speed);
+		return -1;
+	}
 	setInterfaceAttribs(_handle, _speed);
 	setMinCount(_handle, 0); /* set to pure timed read */
 	return 0;

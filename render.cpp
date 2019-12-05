@@ -24,8 +24,9 @@ void serialIo(void* arg) {
 			for(unsigned int n = 0; n < ret; ++n)
 			{
 				// when some relevant data is received
-				// send a reply on the serial port and
-				// pass the data to the audio thread via the pipe
+				// send a notification to the audio thread via
+				// the pipe
+				// and send a reply on the serial port
 				if('k' == serialBuffer[n])
 				{
 					gPipe.writeNonRt('k');
@@ -54,7 +55,7 @@ bool setup(BelaContext *context, void *userData) {
 
 void render(BelaContext *context, void *userData) {
 	char c;
-	// check if the serial thread has sent any message
+	// check if the serial thread has received any message and sent a notification
 	while(gPipe.readRt(c) > 0)
 	{
 		// if there is, trigger the start of the respective sound
