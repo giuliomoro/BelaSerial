@@ -16,69 +16,70 @@ Serial::~Serial() {
 }
 
 int Serial::setup (const char* device, unsigned int speed) {
-	_handle = open(device, O_RDWR | O_NOCTTY | O_SYNC);
-	if (_handle < 0) {
+	fd = open(device, O_RDWR | O_NOCTTY | O_SYNC);
+	if (fd < 0) {
 		fprintf(stderr, "Error opening %s: %s\n", device, strerror(errno));
 		return -1;
 	}
 
-	setBaudRate(speed);
-	if(B0 == _speed) {
+	unsigned int baudRate = speedToBaudRate(speed);
+	if(B0 == baudRate) {
 		fprintf(stderr, "Error setting BAUD rate for %s: %d speed not supported\n", device, speed);
 		return -1;
 	}
-	setInterfaceAttribs(_handle, _speed);
-	setMinCount(_handle, 0); /* set to pure timed read */
+	setInterfaceAttribs(baudRate);
+	setMinCount(0); /* set to pure timed read */
 	return 0;
 }
 
-void Serial::setBaudRate(unsigned int speed) {
+unsigned int Serial::speedToBaudRate(unsigned int speed) {
 	switch(speed) {
-		case 50:    	_speed = B50;
+		case 50:    	speed = B50;
 		break;
-		case 75:    	_speed = B75;
+		case 75:    	speed = B75;
 		break;
-		case 110:   	_speed = B110;
+		case 110:   	speed = B110;
 		break;
-		case 134:   	_speed = B134;
+		case 134:   	speed = B134;
 		break;
-		case 150:   	_speed = B150;
+		case 150:   	speed = B150;
 		break;
-		case 200:   	_speed = B200;
+		case 200:   	speed = B200;
 		break;
-		case 300:   	_speed = B300;
+		case 300:   	speed = B300;
 		break;
-		case 600:   	_speed = B600;
+		case 600:   	speed = B600;
 		break;
-		case 1200:  	_speed = B1200;
+		case 1200:  	speed = B1200;
 		break;
-		case 1800:  	_speed = B1800;
+		case 1800:  	speed = B1800;
 		break;
-		case 2400:  	_speed = B2400;
+		case 2400:  	speed = B2400;
 		break;
-		case 4800:  	_speed = B4800;
+		case 4800:  	speed = B4800;
 		break;
-		case 9600:  	_speed = B9600;
+		case 9600:  	speed = B9600;
 		break;
-		case 19200: 	_speed = B19200;
+		case 19200: 	speed = B19200;
 		break;
-		case 38400: 	_speed = B38400;
+		case 38400: 	speed = B38400;
 		break;
-		case 57600: 	_speed = B57600;
+		case 57600: 	speed = B57600;
 		break;
-		case 115200:	_speed = B115200;
+		case 115200:	speed = B115200;
 		break;
-		case 230400:	_speed = B230400;
+		case 230400:	speed = B230400;
 		break;
 		case 0:
 		//nobreak
 		default:
-		_speed = B0;
+		speed = B0;
 		break;
 	}
+	return speed;
 }
 
-int Serial::setInterfaceAttribs(int fd, int speed) {
+int Serial::setInterfaceAttribs(unsigned int speed) {
 	struct termios tty;
 
 	if (tcgetattr(fd, &tty) < 0) {
@@ -113,7 +114,7 @@ int Serial::setInterfaceAttribs(int fd, int speed) {
 	return 0;
 }
 
-void Serial::setMinCount(int fd, int mcount) {
+void Serial::setMinCount(int mcount) {
 	struct termios tty;
 
 	if (tcgetattr(fd, &tty) < 0) {
@@ -132,19 +133,18 @@ void Serial::setMinCount(int fd, int mcount) {
 
 int Serial::read(char* buf, size_t len, int timeoutMs) {
 	struct pollfd pfd[1];
-	pfd[0].fd = _handle;
+	pfd[0].fd = fd;
 	pfd[0].events = POLLIN;
-	// printf("before poll\n");
 	int result = poll(pfd, 1, timeoutMs);
 	if (result < 0) {
 		fprintf(stderr, "Error polling for serial: %d %s\n", errno,
 		strerror(errno));
-		return errno;
-	} else if (result == 0) {
+		return -errno;
+	} else if (0 == result) {
 		// timeout
 		return 0;
 	} else if (pfd[0].revents & POLLIN) {
-		int rdlen = ::read(_handle, buf, len);
+		int rdlen = ::read(fd, buf, len);
 		if (rdlen < 0) {
 			fprintf(stderr, "Error from read: %d: %s\n", rdlen, strerror(errno));
 		}
@@ -158,12 +158,12 @@ int Serial::read(char* buf, size_t len, int timeoutMs) {
 int Serial::write(const char* buf, size_t len) {
 	if(-1 == len)
 		len = strlen(buf);
-	int ret = ::write(_handle, buf, len);
+	int ret = ::write(fd, buf, len);
 	if (ret < 0) {
 		fprintf(stderr, "write failed: %d %s\n", errno, strerror(errno));
 	}
 	return ret;
 }
 
-void Serial::cleanup() { close(_handle); }
+void Serial::cleanup() { close(fd); }
 
