@@ -1,3 +1,21 @@
+/**
+\example Communication/Serial
+
+Serial communication
+------------
+
+This example demonstrates how to receive and transmit serial data from Bela.
+When a 'k' or 's' are received on the specified serial port, a kick or snare
+sound, respectively, are generated.
+
+Serial data is received in a lower-priority thread (an AuxiliaryTask). From
+there, relevant data is passed to the audio thread via a Pipe.  The
+AuxiliaryTask is also writing to the serial port.
+
+The sound generator is very simple and "retro". IT is using a decaying noise
+burst for the snare sound and a decaying sine sweep for the kick
+*/
+
 #include <Bela.h>
 #include <libraries/Pipe/Pipe.h>
 #include <cmath>
